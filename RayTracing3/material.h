@@ -1,7 +1,7 @@
 #ifndef MATERIAL_H
 #define MATERIAL_H
 
-#include "rtweekend.h"
+#include "helper.h"
 #include "color.h"
 
 class hit_record;
@@ -14,13 +14,13 @@ public:
     virtual bool scatter(const ray& r_in, const hit_record& rec, color& attenuation, ray& scattered) const = 0;
 };
 
-//람베르트 재질
+//램버시안 재질
 class lambertian : public material {
 public:
     lambertian(const color& a) : albedo(a) {}
 
     bool scatter(const ray& r_in, const hit_record& rec, color& attenuation, ray& scattered) const override {
-        //람베르트 반사는 관찰자가 보는 방향에 무관하게 빛을 반사시키므로
+        //램버시안 반사는 관찰자가 보는 방향에 무관하게 빛을 반사시키므로
         //법선에 임의의 정규화된 벡터를 더하여 새로운 반사된 방향(scatter_direction)을 계산합니다.
         auto scatter_direction = rec.normal + random_normalized_vector();
 

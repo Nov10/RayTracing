@@ -2,7 +2,7 @@
 #define CAMERA_H
 #include <opencv2/opencv.hpp>
 
-#include "rtweekend.h"
+#include "helper.h"
 
 #include "color.h"
 #include "hittable.h"
@@ -134,46 +134,58 @@ private:
         defocus_disk_v = v * defocus_radius;
     }
 
+    //(i, j) 픽셀에 대해 사용될 광선을 생성하여 반환
     ray get_ray(int i, int j) const {
-        // Get a randomly sampled camera ray for the pixel at location i,j.
-
+        //렌더링할 픽셀의 중심 위치
         auto pixel_center = pixel00_loc + (i * pixel_delta_u) + (j * pixel_delta_v);
+        //렌더링할 픽셀 내에서 랜덤한 지점을 선택
         auto pixel_sample = pixel_center + pixel_sample_square();
 
+        //광선의 시작점, defocus 효과를 적용하기 위한 랜덤한 위치를 선택
         auto ray_origin = (defocus_angle <= 0) ? center : defocus_disk_sample();
+        //광선의 방향
         auto ray_direction = pixel_sample - ray_origin;
 
         return ray(ray_origin, ray_direction);
     }
 
+    //defocus 효과를 위한 임의의 지점을 반환(변위)
     point3 defocus_disk_sample() const {
-        // Returns a random point in the camera defocus disk.
+        //defocus disk 내부에서 임의의 한 점을 선택
         auto p = random_in_unit_disk();
         return center + (p[0] * defocus_disk_u) + (p[1] * defocus_disk_v);
     }
 
+    //한 픽셀 내부에서 임의의 지점을 반환(변위)
     vector3 pixel_sample_square() const {
-        // Returns a random point in the square surrounding a pixel at the origin.
         auto px = -0.5 + random_double();
         auto py = -0.5 + random_double();
         return (px * pixel_delta_u) + (py * pixel_delta_v);
     }
 
+    //특정 광선이 발사되었을 때, 해당 광선에서 나오는 색상을 반환
     color ray_color(const ray& r, int depth, const hittable& world) const {
         hit_record rec;
 
-        // If we've exceeded the ray bounce limit, no more light is gathered.
+        //광선이 최대로 튕기는 횟수를 제한
         if (depth <= 0)
             return color(0, 0, 0);
 
         if (world.hit(r, interval(0.001, infinity), rec)) {
             ray scattered;
             color attenuation;
+
+            //빛에 새롭게 감지된 물체에서 퍼질 경우
             if (rec.mat->scatter(r, rec, attenuation, scattered))
+                //현재 감지된 물체에서 나온 색과 새롭게 감지된 물체에서 나온 색을 곱함
+                //재귀적으로 작동하므로, 위에서 설정한 최대까지 빛이 튕기는 것을 구현할 수 있습니다.
                 return attenuation * ray_color(scattered, depth - 1, world);
+
+            //빛이 퍼지지 않을 경우, 검은색을 반환
             return color(0, 0, 0);
         }
 
+        //배경 그라데이션(하늘)
         vector3 unit_direction = normalized(r.direction());
         auto a = 0.5 * (unit_direction.y() + 1.0);
         return ((1.0 - a) * color(1.0, 1.0, 1.0) + a * color(0.5, 0.7, 1.0));

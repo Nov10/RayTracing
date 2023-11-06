@@ -38,7 +38,7 @@
     <ClInclude Include="hittable_list.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="rtweekend.h">
+    <ClInclude Include="helper.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="interval.h">

@@ -1,5 +1,5 @@
 #include <opencv2/opencv.hpp>
-#include "rtweekend.h"
+#include "helper.h"
 
 #include "camera.h"
 #include "hittable_list.h"
@@ -65,7 +65,7 @@ int main() {
     camera cam;
 
     cam.aspect_ratio = 16.0 / 9.0;
-    cam.image_width = 100;
+    cam.image_width = 200;
     cam.samples_per_pixel = 30;
     cam.max_depth = 20;
 

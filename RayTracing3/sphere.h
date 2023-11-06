@@ -4,10 +4,12 @@
 #include "hittable.h"
 #include "vec3.h"
 
+//구(충돌 가능한 물체)
 class sphere : public hittable {
 public:
     sphere(point3 _center, double _radius, shared_ptr<material> _material) : center(_center), radius(_radius), mat(_material) {}
 
+    //구체와 물체의 충돌을 계산
     bool hit(const ray& r, interval ray_t, hit_record& rec) const override {
         //광선과 구의 방정식을 연립한 후, t에 대한 이차방정식으로 나타내었을 때
         //t에 대한 이차방정식의 계수들을 계산함
@@ -40,12 +42,9 @@ public:
     }
 
 private:
-    //구의 중심
-    point3 center;
-    //구의 반지름
-    double radius;
-    //구의 재질
-    shared_ptr<material> mat;
+    point3 center; //구의 중심
+    double radius; //구의 반지름
+    shared_ptr<material> mat; //구의 재질
 };
 
 #endif
