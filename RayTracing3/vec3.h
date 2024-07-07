@@ -124,7 +124,17 @@ inline vector3 random_in_unit_sphere() {
 			return p;
 	}
 }
+inline vector3 random_cosine_direction() {
+	auto r1 = random_double();
+	auto r2 = random_double();
 
+	auto phi = 2 * pi * r1;
+	auto x = cos(phi) * sqrt(r2);
+	auto y = sin(phi) * sqrt(r2);
+	auto z = sqrt(1 - r2);
+
+	return vector3(x, y, z);
+}
 inline vector3 random_normalized_vector() {
 	return normalized(random_in_unit_sphere());
 }

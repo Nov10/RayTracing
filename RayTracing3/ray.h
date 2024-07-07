@@ -7,11 +7,14 @@ class ray {
 public:
     ray() {}
 
-    ray(const point3& origin, const vector3& direction) : orig(origin), dir(direction) {}
-    //...
+    ray(const point3& origin, const vector3& direction)
+        : orig(origin), dir(direction), tm(0) {}
+
+    ray(const point3& origin, const vector3& direction, double time)
+        : orig(origin), dir(direction), tm(time) {}
     point3 origin() const { return orig; } //광선의 시작점
     vector3 direction() const { return dir; } //광선의 방향
-
+    double time() const { return tm; }
     //매개변수를 이용하여 광선 위의 한 점의 위치를 계산
     point3 at(double t) const {
         return orig + t * dir;
@@ -20,6 +23,7 @@ public:
 private:
     point3 orig; //시작점
     vector3 dir; //방향
+    double tm;
 };
 
 #endif
