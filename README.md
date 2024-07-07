@@ -1,4 +1,4 @@
-Simple C++ Ray Tracing
+## Simple C++ Ray Tracing
 
 The entire code is written based on C++, and OpenCV is only used for displaying the results on the screen.
 
