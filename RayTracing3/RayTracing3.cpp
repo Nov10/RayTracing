@@ -250,8 +250,10 @@ void cornell_box() {
     auto red = make_shared<lambertian>(color(.65, .05, .05));
     auto white = make_shared<lambertian>(color(.73, .73, .73));
     auto green = make_shared<lambertian>(color(.12, .15, .85));
-        auto green3 = make_shared<lambertian>(color(.12, .75, .15));
-    auto light = make_shared<diffuse_light>(color(15, 15, 15)*3);
+    auto green3 = make_shared<lambertian>(color(.12, .75, .15));
+    auto light = make_shared<diffuse_light>(color(15, 15, 15) * 3);
+
+    auto sss = make_shared< subsurface_scattering>(color(.12, .15, .85), 0.4, 0.6);
 
     world.add(make_shared<quad>(point3(555, 0, 0), vector3(0, 555, 0), vector3(0, 0, 555), green));
     world.add(make_shared<quad>(point3(0, 0, 0), vector3(0, 555, 0), vector3(0, 0, 555), red));
@@ -259,6 +261,7 @@ void cornell_box() {
     world.add(make_shared<quad>(point3(0, 0, 0), vector3(555, 0, 0), vector3(0, 0, 555), white));
     world.add(make_shared<quad>(point3(555, 555, 555), vector3(-555, 0, 0), vector3(0, 0, -555), green3));
     world.add(make_shared<quad>(point3(0, 0, 555), vector3(555, 0, 0), vector3(0, 555, 0), white));
+    
     // Light
     world.add(make_shared<quad>(point3(213, 554, 227), vector3(130, 0, 0), vector3(0, 0, 105), light));
     // Light Sources
@@ -269,7 +272,8 @@ void cornell_box() {
 
     auto glass2 = make_shared<metal>(color(0.15, 0.1, 0.86), 0.001);
     // Box
-    shared_ptr<hittable> box1 = box(point3(0, 0, 0), point3(165, 330, 165), glass2);
+    
+    shared_ptr<hittable> box1 = box(point3(0, 0, 0), point3(165, 330, 165), sss);
     box1 = make_shared<rotate_y>(box1, 30);
     box1 = make_shared<translate>(box1, vector3(265, 0, 295));
     world.add(box1);
@@ -281,13 +285,13 @@ void cornell_box() {
     // Glass Sphere
     auto met = make_shared<metal>(color(0.75, 0.2, 0.76), 0.01);
     world.add(make_shared<sphere>(point3(340, 50, 80), 50, met));
-
+    
     camera cam;
 
     cam.aspect_ratio = 1.0;
-    cam.image_width = 600;
-    cam.samples_per_pixel = 300;
-    cam.max_depth = 10;
+    cam.image_width = 750;
+    cam.samples_per_pixel = 12*12;
+    cam.max_depth = 20;
     cam.background = color(1,1,1);
 
     cam.vfov = 40;

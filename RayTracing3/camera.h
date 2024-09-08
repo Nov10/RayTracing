@@ -4,6 +4,7 @@
 
 #include "helper.h"
 
+#include <ctime>
 #include "color.h"
 #include "hittable.h"
 #include "material.h"
@@ -21,12 +22,20 @@ public:
     vector3   vup = vector3(0, 1, 0);     // 카메라의 좌표계를 기준으로 하는 윗방향
     color  background;               // Scene background color
 
+    double px[10];
+    double py[10];
+    double pz[10];
+    //vector3 pdir[10];
     double defocus_angle = 0;  // Variation angle of rays through each pixel
     double focus_dist = 10;    // Distance from camera lookfrom point to plane of perfect focus
 
     void render(const hittable& world, const hittable& lights) {
         initialize();
 
+        clock_t start, finish;
+        double duration;
+
+        start = clock();
         std::cout << "P3\n" << image_width << ' ' << image_height << "\n255\n";
         vector3 view = lookat - lookfrom;
         cv::Mat image(image_height, image_width, CV_8UC3);
@@ -37,12 +46,13 @@ public:
                 auto pixel_center = pixel00_loc + (i * pixel_delta_u) + (j * pixel_delta_v);
                 auto ray_direction = pixel_center - center;
                 ray r(center, ray_direction);
-
                 color pixel_color(0, 0, 0);
                 //for (int sample = 0; sample < samples_per_pixel; ++sample) {
                 //    ray r = get_ray(i, j);
                 //    pixel_color += ray_color(r, max_depth, world);
                 //}
+
+                //#pragma omp parallel for reduction(+ : pixel_color) 
                 for (int s_j = 0; s_j < sqrt_spp; s_j++) {
                     for (int s_i = 0; s_i < sqrt_spp; s_i++) {
                         ray r = get_ray(i, j, s_i, s_j);
@@ -54,7 +64,13 @@ public:
                 image.at<cv::Vec3b>(j, i) = cv::Vec3b(pixel_color.z(), pixel_color.y(), pixel_color.x());
             }
         }
+        finish = clock();
 
+        duration = (double)(finish - start) / CLOCKS_PER_SEC;
+        std::cout << duration << "초ASDASD" << std::endl;
+
+
+        //printf("%f초", duration);
         // Show the image
         cv::imshow("Image", image);
         cv::waitKey(0); // Wait for a key event
@@ -198,9 +214,8 @@ private:
         auto py = -0.5 + random_double();
         return (px * pixel_delta_u) + (py * pixel_delta_v);
     }
-
     //특정 광선이 발사되었을 때, 해당 광선에서 나오는 색상을 반환
-	color ray_color(const ray& r, int depth, const hittable& world, const vector3& view, const hittable& lights) const {
+	color ray_color(const ray& r, int depth, const hittable& world, const vector3& view, const hittable& lights) {
 
 		//광선이 최대로 튕기는 횟수를 제한
         if (depth <= 0)
@@ -212,50 +227,6 @@ private:
 		// If the ray hits nothing, return the background color.
 		if (!world.hit(r, interval(0.001, infinity), rec))
 			return background;
-
-		//ray scattered;
-		//color attenuation;
-		//double pdf_val;
-		//color color_from_emission = rec.mat->emitted(r, rec, rec.u, rec.v, rec.point);
-		////color color_from_emission = rec.mat->emitted(r, rec, rec.u, rec.v, rec.point);
-
-		//if (!rec.mat->scatter(r, rec, attenuation, scattered, view, pdf_val))
-		//	return color_from_emission;
-
-		//MY!!!!!!!!!!!!! color color_from_scatter = attenuation * ray_color(scattered, depth - 1, world, view);
-		//double scattering_pdf = rec.mat->scattering_pdf(r, rec, scattered);
-		//double pdf = scattering_pdf;
-		//double pdf = 1 / (2 * pi);
-
-		//color color_from_scatter =
-		//    (attenuation * scattering_pdf * ray_color(scattered, depth - 1, world)) / pdf;
-        // 
-        
-        //ray scattered;
-        //color attenuation;
-        //double pdf_val;
-
-        //if (!rec.mat->scatter(r, rec, attenuation, scattered, view, pdf_val))
-        //    return color_from_emission;
-        //cosine_pdf surface_pdf(rec.normal);
-        //scattered = ray(rec.point, surface_pdf.generate(), r.time());
-        //pdf = surface_pdf.value(scattered.direction());
-
-        //auto on_light = point3(random_double(213, 343), 554, random_double(227, 332));
-        //auto to_light = on_light - rec.point;
-        //auto distance_squared = to_light.length_squared();
-        //to_light = normalized(to_light);
-
-        //if (dot(to_light, rec.normal) < 0)
-        //    return color_from_emission;
-
-        //double light_area = (343 - 213) * (332 - 227);
-        //auto light_cosine = fabs(to_light.y());
-        //if (light_cosine < 0.000001)
-        //    return color_from_emission;
-
-        //pdf = distance_squared / (light_cosine * light_area);
-        //scattered = ray(rec.point, to_light, r.time());
 
         {
             scatter_record srec;
@@ -270,16 +241,43 @@ private:
 
             auto light_ptr = make_shared<hittable_pdf>(lights, rec.point);
             mixture_pdf p(light_ptr, srec.pdf_ptr);
-
-            
             ray scattered = ray(rec.point, normalized(p.generate()), r.time());
+            
             double scattering_pdf = rec.mat->scattering_pdf(r, rec, scattered);
-            auto pdf_val = p.value(scattered.direction()) + scattering_pdf;
+            double p_light = light_ptr->value(scattered.direction());
+            double p_srec = srec.pdf_ptr->value(scattered.direction());
+            double p_mix = p.value(scattered.direction());
+            //auto pdf_val = p_mix / scattering_pdf;
 
-            double ndw = dot(rec.normal, scattered.direction());
+            //double ndw = dot(rec.normal, scattered.direction());
+            //double ndr = dot(rec.normal, -r.direction());
+            //vector3 half_in = normalized(-r.direction() + rec.normal);
+            //double nd_in = dot(half_in, scattered.direction());
+
+            //double i = (srec.attenuation.length());
+            //double adjusted_pdf_val = 5 * p_srec * inv_sl * (ndw) / (pdf_val) - 0.001* sl;
+
+                // Normalizing the PDF value
+            double pdf_val = p_mix / (scattering_pdf);  // Prevent division by zero
+
+            //// Dot products for angles
+            double ndw = dot(rec.normal, scattered.direction());  // Cosine of angle with normal
+            double ndr = dot(rec.normal, -r.direction());  // Cosine of angle with incoming ray
+            double rds = 1 - dot(r.direction(), scattered.direction());
+            vector3 half_in = normalized(-r.direction() + rec.normal);
+            double nd_in = dot(half_in, scattered.direction());  // Halfway vector dot product
+
+            double sl = std::max(exp(std::max(rds, 0.0) -1), 0.01) * srec.attenuation.length();
+            double inv_sl = 1 / (1 + exp(-sl));
+            // Apply a smoother weight using cosine terms and sigmoidal adjustment
+            double cosine_weight = std::max(ndw, 0.0);  // Ensure non-negative
+            double sigmoid_smooth = 1.0 / (1.0 + exp(-(cosine_weight + 1.5*srec.attenuation.length()) * 7.0));  // Sigmoid smoothing
+            double adjusted_pdf_val = (std::sqrt(0.8 * p_mix + p_srec * 0.5) * sigmoid_smooth * std::sqrt( ndw + ndr) ) / (inv_sl * (pdf_val + 0.15));  // Stability term added
+
+
             color sample_color = ray_color(scattered, depth - 1, world, view, lights);
-            color color_from_scatter = (srec.attenuation  * sample_color * ndw) / (pdf_val);
-
+            color color_from_scatter = (adjusted_pdf_val)* (sample_color * srec.attenuation) * 0.25;
+            //color color_from_scatter =  (sample_color * srec.attenuation * ndw) / pdf_val;
             return color_from_emission + color_from_scatter;
         }
         //ray scattered;
@@ -320,6 +318,23 @@ private:
 		//auto a = 0.5 * (unit_direction.y() + 1.0);
 		//return ((1.0 - a) * color(1.0, 1.0, 1.0) + a * color(0.5, 0.7, 1.0));
 	}
+
+    double dynamic_direction_weight(const vector3& scatter_direction, const vector3& normal) {
+        // 샘플링 방향과 법선 벡터 간의 각도를 이용해 샘플링 집중도를 측정
+        double dot_product = dot(scatter_direction, normal);
+        return dot_product;
+        // 편향된 샘플링일 경우 가중치를 낮추고, 고르게 분포된 경우 가중치를 높임
+        if (dot_product > 0.9) {  // 특정 방향으로 집중되었을 경우
+            return 0.1;  // 가중치를 낮추어 편향을 줄임
+        }
+        else if (dot_product > 0.5) {  // 중간 정도로 집중된 경우
+            return 0.3;  // 기본 가중치 유지
+        }
+        else {  // 산란이 고르게 분포된 경우
+            return 0.6;  // 가중치를 높여 해당 방향을 더 많이 반영
+        }
+    }
+
 };
 
 #endif

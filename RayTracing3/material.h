@@ -327,6 +327,51 @@ public:
 private:
     shared_ptr<texture> tex;
 };
+class subsurface_scattering : public material {
+public:
+    subsurface_scattering(const color& albedo, double scattering_distance, double absorption_distance)
+        : albedo(albedo),
+        scattering_coefficient(1.0 / scattering_distance),
+        absorption_coefficient(-log(albedo.length()) / absorption_distance) {}
+
+    bool scatter(const ray& r_in, const hit_record& rec, scatter_record& srec) const override {
+        // 산란 거리 샘플링: 확률적으로 산란 이벤트의 거리를 결정
+        double distance = -log(random_double()) / scattering_coefficient;
+
+        
+        // 산란 거리가 표면까지의 거리보다 짧으면 산란 이벤트 발생
+        if (distance < rec.t) {
+            vector3 scatter_point = rec.point;
+
+            // 무작위 산란 방향 (등방성 산란)
+            vector3 scatter_direction = random_in_unit_sphere() * distance;
+
+            srec.attenuation = exp(-absorption_coefficient * distance) * albedo;  // 흡수와 산란에 따른 감쇠
+            srec.skip_pdf_ray = ray(scatter_point, scatter_direction, r_in.time());
+            srec.skip_pdf = true;  // PDF를 사용하지 않고 직접 처리
+            return true;
+
+        }
+
+        // 산란이 일어나지 않으면 표면에서 흡수만 발생
+        return false;
+    }
+
+    double scattering_pdf(const ray& r_in, const hit_record& rec, const ray& scattered) const override {
+        // 등방성 산란의 PDF는 1 / (4 * PI)
+        return 1.0 / (4.0 * pi);
+    }
+
+    color emitted(const ray& r_in, const hit_record& rec, double u, double v, const point3& p) const override {
+        return color(0, 0, 0);  // SSS에서는 자체 발광이 없으므로 0 반환
+    }
+
+private:
+    color albedo;
+    double scattering_coefficient;  // 산란 계수
+    double absorption_coefficient;  // 흡수 계수
+};
+
 class isotropic : public material {
 public:
     isotropic(const color& albedo) : tex(make_shared<solid_color>(albedo)) {}

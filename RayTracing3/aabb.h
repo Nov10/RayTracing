@@ -35,7 +35,10 @@ public:
         if (n == 2) return z;
         return x;
     }
-
+    bool hitpoint(const vector3 p) const
+    {
+        return x.surrounds(p.x()) && y.surrounds(p.y()) && z.surrounds(p.z());
+    }
     bool hit(const ray& r, interval ray_t) const {
         const point3& ray_orig = r.origin();
         const vector3& ray_dir = r.direction();
